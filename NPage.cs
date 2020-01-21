@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NPage.Struct;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace NPage
         /// <param name="interval"></param>
         /// <param name="additionalActionListener"></param>
         /// <returns></returns>
-        public static async Task PaginationAsync<T>(IEnumerable<T> data, Action<T> template, int pageSize = 5, int interval = 300, Action<System.ConsoleKey> additionalActionListener = null)
+        public static async Task PaginationAsync<T>(IEnumerable<T> data, Action<T> template, CancellationToken cancellationToken, int pageSize = 5, int interval = 300, Action<System.ConsoleKey> additionalActionListener = null)
         {
             if (!data.Any()) return;
             if (template == null)
@@ -29,7 +30,7 @@ namespace NPage
             var availablePages = (int)Math.Ceiling((double)data.Count() / pageSize);
             var currentPage = 0;
             Task.Run(ActionListenerThread);
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 Console.Clear();
                 Console.WriteLine();
@@ -79,7 +80,7 @@ namespace NPage
         /// <param name="pageSize"></param>
         /// <param name="interval"></param>
         /// <param name="additionalActionListener"></param>
-        public static void Pagination<T>(IEnumerable<T> data, Action<T> template, int pageSize = 5, int interval = 300, Action<System.ConsoleKey> additionalActionListener = null)
+        public static void Pagination<T>(IEnumerable<T> data, Action<T> template, CancellationToken cancellationToken, int pageSize = 5, int interval = 300, Action<System.ConsoleKey> additionalActionListener = null)
         {
             if (!data.Any()) return;
             if (template == null)
@@ -89,7 +90,7 @@ namespace NPage
             var availablePages = (int)Math.Ceiling((double)data.Count() / pageSize);
             var currentPage = 0;
             Task.Run(ActionListenerThread);
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 Console.Clear();
                 Console.WriteLine();
@@ -130,5 +131,107 @@ namespace NPage
                 }
             }
         }
+        /// <summary>
+        /// Display custom tab.
+        /// </summary>
+        /// <param name="switchableTab"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="interval"></param>
+        /// <param name="additionalActionListener"></param>
+        public static void DisplayTab(SwitchableTab switchableTab, CancellationToken cancellationToken, int interval = 300, Action<System.ConsoleKey> additionalActionListener = null)
+        {
+            Task.Run(ActionListenerThread);
+            var linebreak = "--------------";
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var tab = switchableTab.Current();
+                Console.Clear();
+                Console.WriteLine();
+                Console.SetCursorPosition((Console.WindowWidth - tab.Header.Length) / 2, Console.CursorTop);
+                Console.WriteLine(tab.Header);
+                Console.SetCursorPosition((Console.WindowWidth - linebreak.Length) / 2, Console.CursorTop);
+                Console.WriteLine(linebreak);
+                tab.Body?.Invoke();
+                Thread.Sleep(interval);
+            }
+            void ActionListenerThread()
+            {
+                while (true)
+                {
+                    var action = Console.ReadKey(true).Key;
+                    switch (action)
+                    {
+                        case ConsoleKey.LeftArrow:
+                            switchableTab.Previous();
+                            break;
+                        case ConsoleKey.RightArrow:
+                            switchableTab.Next();
+                            break;
+                        case ConsoleKey.Home:
+                            switchableTab.GoToFirst();
+                            break;
+                        case ConsoleKey.End:
+                            switchableTab.GoToLast();
+                            break;
+                        default:
+                            additionalActionListener?.Invoke(action);
+                            break;
+                    }
+                }
+            }
+
+        }
+        /// <summary>
+        /// Display custom tab in an asynchronous manner.
+        /// </summary>
+        /// <param name="switchableTab"></param>
+        /// <param name="cancellationToken"></param>
+        /// <param name="interval"></param>
+        /// <param name="additionalActionListener"></param>
+        /// <returns></returns>
+        public static async Task DisplayTabAsync(SwitchableTab switchableTab, CancellationToken cancellationToken, int interval = 300, Action<System.ConsoleKey> additionalActionListener = null)
+        {
+            Task.Run(ActionListenerThread);
+            var linebreak = "--------------";
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var tab = switchableTab.Current();
+                Console.Clear();
+                Console.WriteLine();
+                Console.SetCursorPosition((Console.WindowWidth - tab.Header.Length) / 2, Console.CursorTop);
+                Console.WriteLine(tab.Header);
+                Console.SetCursorPosition((Console.WindowWidth - linebreak.Length) / 2, Console.CursorTop);
+                Console.WriteLine(linebreak);
+                tab.Body?.Invoke();
+                await Task.Delay(interval);
+            }
+            void ActionListenerThread()
+            {
+                while (true)
+                {
+                    var action = Console.ReadKey(true).Key;
+                    switch (action)
+                    {
+                        case ConsoleKey.LeftArrow:
+                            switchableTab.Previous();
+                            break;
+                        case ConsoleKey.RightArrow:
+                            switchableTab.Next();
+                            break;
+                        case ConsoleKey.Home:
+                            switchableTab.GoToFirst();
+                            break;
+                        case ConsoleKey.End:
+                            switchableTab.GoToLast();
+                            break;
+                        default:
+                            additionalActionListener?.Invoke(action);
+                            break;
+                    }
+                }
+            }
+
+        }
+
     }
 }
